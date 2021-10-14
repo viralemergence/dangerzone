@@ -21,4 +21,4 @@ for(i in i:nrow(iucn)){
   print(paste0("Citations: ", iucn$Citations[i]))
 }
 
-write_csv(iucn, "Citation.csv")
+write_csv(iucn, "Citation2.csv")
