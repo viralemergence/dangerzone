@@ -6,7 +6,7 @@ rm(list = ls())
 {
 
   library(tidyverse); library(data.table); library(magrittr); library(ggregplot); library(cowplot)
-  library(geiger);library(ape);library(picante)
+  library(geiger);library(ape);library(picante); library(patchwork)
   library(tidyverse); library(INLA); library(ggregplot); library(glue); library(fs)
 
   theme_set(theme_cowplot())
@@ -16,6 +16,8 @@ rm(list = ls())
 iucn <- readRDS("IUCNDF.rds")
 
 iucn %<>% filter(!populationTrend == "")
+
+iucn %<>% rename(DataDeficient = Data_Deficient)
 
 # source("0_Urban Import.R")
 
@@ -35,11 +37,11 @@ names(FamilyList) <- Resps
 
 FullCovar <- c("hOrder",
                "LogCites",
-               "Endangered", "Data_Deficient",
-               "populationTrend",
+               "Endangered", "DataDeficient", "Decreasing",
+               # "populationTrend",
                # "DomesticBinary", "HumanDistance",
-               "LogArea", "DietDiversity",
-               "LogMass",
+               # "LogArea", "DietDiversity",
+               # "LogMass",
                "PC1", "PC2")
 
 PhyloList <-
@@ -47,14 +49,25 @@ PhyloList <-
   TestDFList <-
   list()
 
-# iucn %<>%
-#   filter(!is.na(NVirion)) %>% # Removing all pseudoabsences
-#   filter(!is.na(NVirion) & !(LogCites == 0)) %>% # Removing pseudoabsences and citations
-#   mutate_at("NZoon", ~ifelse(is.na(.x), 0, .x)) %>%
-#   mutate_at("NVirion", ~.x - 1)
+if(1){ # Removing pseudoabsences
 
-iucn %<>%
-  mutate_at(c("NZoon", "NVirion"), ~ifelse(is.na(.x), 0, .x))
+  iucn %<>%
+    # filter(!is.na(NVirion)) %>% # Removing all pseudoabsences
+    filter(!(is.na(NVirion) & LogCites == 0)) %>% # Removing pseudoabsences and zero-citations
+    # mutate_at("NZoon", ~ifelse(is.na(.x), 0, .x)) %>%
+    # mutate_at("NVirion", ~.x - 1) %>%
+    mutate_at(c("NZoon", "NVirion"), ~ifelse(is.na(.x), 0, .x))
+
+  iucn %>% nrow %>% print
+
+}else{ # Including pseudoabsences
+
+  iucn %<>%
+    mutate_at(c("NZoon", "NVirion"), ~ifelse(is.na(.x), 0, .x))
+
+  iucn %>% nrow %>% print
+
+}
 
 iucn %<>% mutate(LogRichness = log(NVirion + 1))
 
@@ -99,10 +112,7 @@ for(q in q:length(Resps)){
 
   print(nrow(TestDF))
 
-  TestDF %>%
-    select(FullCovar) %>%
-    mutate_if(is.numeric, ~.x %>% scale %>% c) ->
-    TestDF[,FullCovar]
+  # TestDF %<>% mutate_at("populationTrend", ~factor(.x, levels = c("Stable", "Decreasing", "Increasing", "Unknown")))
 
   if(q < 2){
 
@@ -120,7 +130,8 @@ for(q in q:length(Resps)){
       Data = TestDF,
       Base = T, Beep = F,
       AllModels = T,
-      AddSpatial = T
+      AddSpatial = T,
+      Groups = T, GroupVar = "Endangered"
 
     )
 
@@ -140,7 +151,8 @@ for(q in q:length(Resps)){
       Data = TestDF,
       Base = T, Beep = F,
       AllModels = T,
-      AddSpatial = T
+      AddSpatial = T,
+      Groups = T, GroupVar = "Endangered"
 
     )
 
@@ -154,13 +166,95 @@ for(q in q:length(Resps)){
 
   # IM1$FinalModel %>% Efxplot %>% plot
 
-  # IMList[[FocalResp]] %>%
-  #   saveRDS(file = paste0("Output/Models_", FocalResp, ".rds"))
+  IMList[[FocalResp]] %>%
+    saveRDS(file = paste0("Output/Models_", FocalResp, ".rds"))
 
 }
-
-library(patchwork)
 
 IMList %>% map("FinalModel") %>% Efxplot + ggtitle("Base") +
   IMList %>% map(c("Spatial", "Model")) %>% Efxplot + ggtitle("Spatial") +
   plot_layout(guides = "collect")
+
+IMList %>% map("FinalModel") %>% Efxplot + ggtitle("Base") +
+  IMList %>% map(c("Spatial", "Model")) %>% Efxplot + ggtitle("Spatial") +
+  IMList %>% map(c("Spatial", "SpatiotemporalModel")) %>% Efxplot + ggtitle("Spatial") +
+  plot_layout(guides = "collect")
+
+# Figure ####
+
+ModelEffects <-
+  IMList %>%
+  map(c("Spatial", "Model")) %>%
+  Efxplot +
+  theme(legend.position = "top") +
+  scale_colour_manual(values = c(AlberColours[[2]], AlberColours[[3]]),
+                      labels = c("Rich.", "Zoo.Rich."))
+
+Maps <-
+  IMList %>%
+  map(function(a){
+
+    ggField(Model = a$Spatial$Model,
+            Mesh = a$Spatial$Mesh, #Groups = 2,
+            Points = a$Data[,c("X", "Y")]) +
+      scale_fill_discrete_sequential(palette = AlberPalettes[[2]]) +
+      theme_void()
+
+  }) %>%
+  ArrangeCowplot() +
+  plot_layout(nrow = 2,
+              guides = "collect")
+
+Maps[[1]] <-
+  Maps[[1]] + labs(fill = "Rich.")
+
+Maps[[2]] <-
+  Maps[[2]] + labs(fill = "Zoo.Rich.")
+
+Maps[[2]] <- Maps[[2]] + scale_fill_discrete_sequential(palette = AlberPalettes[[3]])
+
+ModelEffects|Maps
+
+# Path Analysis ####
+
+(MeanEndangeredNV <- IMList$NVirion$Spatial$Model %>% GetEstimates("EndangeredTRUE"))
+(MeanEndangeredNZ <- IMList$NZoon$Spatial$Model %>% GetEstimates("EndangeredTRUE"))
+(MeanNVNZ <- IMList$NZoon$Spatial$Model %>% GetEstimates("LogRichness"))
+
+(PEndangeredNV <- IMList$NVirion$Spatial$Model %>% INLAPValue("EndangeredTRUE"))
+(PEndangeredNZ <- IMList$NZoon$Spatial$Model %>% INLAPValue("EndangeredTRUE"))
+(PNVNZ <- IMList$NZoon$Spatial$Model %>% INLAPValue("LogRichness"))
+
+EndangeredNV <- IMList$NVirion$Spatial$Model %>% GetEstimates("EndangeredTRUE", NDraws = 1000, Draw = T)
+EndangeredNZ <- IMList$NZoon$Spatial$Model %>% GetEstimates("EndangeredTRUE", NDraws = 1000, Draw = T)
+NVNZ <- IMList$NZoon$Spatial$Model %>% GetEstimates("LogRichness", NDraws = 1000, Draw = T)
+
+Indirect <- EndangeredNV*NVNZ
+
+Indirect %>% qplot
+
+IndirectCI <- Indirect %>% as.mcmc %>% HPDinterval()
+IndirectMean <- Indirect %>% as.mcmc %>% mean()
+
+Indirect %>% qplot + geom_vline(aes(xintercept = c(IndirectCI, IndirectMean)), colour = "red")
+
+# Endangered Maps ####
+
+library(colorspace)
+
+IMList$NZoon$Spatial$SpatiotemporalModel %>%
+  ggField(Mesh = IMList$NZoon$Spatial$Mesh, Groups = 2,
+          GroupVar = "Endangered",
+          PointSize = 1,
+          Points = IMList$NZoon$Data[,c("X", "Y", "Endangered")]) +
+  scale_fill_discrete_sequential(palette = AlberPalettes[[2]])
+
+
+IMList$NZoon$Spatial$Model %>%
+  ggField(Mesh = IMList$NZoon$Spatial$Mesh, #Groups = 2,
+          Points = IMList$NZoon$Data[,c("X", "Y")]) +
+  scale_fill_discrete_sequential(palette = AlberPalettes[[2]])
+
+
+
+

@@ -222,4 +222,7 @@ iucn <-
   dplyr::select(Sp, populationTrend) %>%
   left_join(iucn, .)
 
+iucn %<>%
+  mutate(Decreasing = (populationTrend == "Decreasing"))
+
 iucn %>% saveRDS("IUCNDF.rds")
