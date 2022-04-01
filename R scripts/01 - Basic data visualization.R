@@ -1,8 +1,16 @@
 library(ggridges); library(ggplot2); library(magrittr); library(tidyverse); library(vroom)
 library(awtools); library(patchwork)
 
-virion <- vroom("~/Github/virion/Virion/virion.csv.gz"); vir <- virion
-iucnraw <- read_csv("C:/Users/cjcar/Downloads/IUCNCLOV.csv"); iucn <- iucnraw
+# virion <- vroom("~/Github/virion/Virion/virion.csv.gz"); vir <- virion
+# iucnraw <- read_csv("C:/Users/cjcar/Downloads/IUCNCLOV.csv"); iucn <- iucnraw
+
+vir <-
+  virion <-
+  "Data/Virion.csv.gz" %>% vroom::vroom()
+
+iucn <-
+  iucnraw <-
+  read_csv("Data/iucnclov.csv")
 
 vir %<>% filter(HostNCBIResolved = TRUE,
                 ICTVRatified = TRUE)
@@ -14,9 +22,9 @@ vir %>%
 
 iucn %<>% left_join(virdf)
 
-ggplot(iucn, aes(y = redlistCategory, x = NVirion, fill = redlistCategory)) + 
-  geom_density_ridges() + 
-  scale_x_continuous(trans = "log10")
+# ggplot(iucn, aes(y = redlistCategory, x = NVirion, fill = redlistCategory)) +
+#   geom_density_ridges() +
+#   scale_x_continuous(trans = "log10")
 
 vir %>% filter(Host == 'homo sapiens') %>%
   select(Virus) %>% distinct() %>% pull(Virus) -> zoonoses
@@ -37,37 +45,37 @@ iucn %<>% mutate(redlistCategory = factor(redlistCategory,
                                                          "Critically Endangered",
                                                          "Extinct",
                                                          "Extinct in the Wild"))))
-iucn %>%
-  filter(!(redlistCategory %in% c("Extinct", "Extinct in the Wild"))) %>% 
-  ggplot(aes(y = redlistCategory, x = NVirion, fill = redlistCategory)) + 
-  theme_ridges() +
-  geom_density_ridges(alpha = 0.5,
-                      jittered_points = TRUE,
-                      point_alpha=1,
-                      point_shape=21) + 
-  scale_x_continuous(trans = "log10") + 
-  guides(fill = "none", color = "none") +
-  scale_fill_cyclical(values = rev(awtools::a_palette[1:6])) + 
-  xlab("") + ylab("") -> g1
+# iucn %>%
+#   filter(!(redlistCategory %in% c("Extinct", "Extinct in the Wild"))) %>%
+#   ggplot(aes(y = redlistCategory, x = NVirion, fill = redlistCategory)) +
+#   theme_ridges() +
+#   geom_density_ridges(alpha = 0.5,
+#                       jittered_points = TRUE,
+#                       point_alpha=1,
+#                       point_shape=21) +
+#   scale_x_continuous(trans = "log10") +
+#   guides(fill = "none", color = "none") +
+#   scale_fill_cyclical(values = rev(awtools::a_palette[1:6])) +
+#   xlab("") + ylab("") -> g1
 
 # Zoonotic
 
-iucn %>%
-  filter(!(redlistCategory %in% c("Extinct", "Extinct in the Wild"))) %>% 
-  pivot_longer(c("NVirion", "NZoon"), names_to = "Level", values_to = "Viruses") %>% 
-  mutate(Level = recode(Level, !!!c("NVirion"="Total viral richness",
-                                    "NZoon" = "Zoonotic viral richness"))) %>% 
-  ggplot(aes(y = redlistCategory, x = Viruses, fill = redlistCategory)) + 
-  theme_bw() + 
-  geom_density_ridges(alpha = 0.5,
-                      jittered_points = TRUE,
-                      point_alpha=1,
-                      point_shape=21) + 
-  scale_x_continuous(trans = "log10") + 
-  guides(fill = "none", color = "none") +
-  scale_fill_cyclical(values = rev(awtools::a_palette[1:6])) + 
-  xlab("") + ylab("") + facet_wrap( ~ Level)
- 
+# iucn %>%
+#   filter(!(redlistCategory %in% c("Extinct", "Extinct in the Wild"))) %>%
+#   pivot_longer(c("NVirion", "NZoon"), names_to = "Level", values_to = "Viruses") %>%
+#   mutate(Level = recode(Level, !!!c("NVirion"="Total viral richness",
+#                                     "NZoon" = "Zoonotic viral richness"))) %>%
+#   ggplot(aes(y = redlistCategory, x = Viruses, fill = redlistCategory)) +
+#   theme_bw() +
+#   geom_density_ridges(alpha = 0.5,
+#                       jittered_points = TRUE,
+#                       point_alpha=1,
+#                       point_shape=21) +
+#   scale_x_continuous(trans = "log10") +
+#   guides(fill = "none", color = "none") +
+#   scale_fill_cyclical(values = rev(awtools::a_palette[1:6])) +
+#   xlab("") + ylab("") + facet_wrap( ~ Level)
+
 ################# Tukey tests
 
 ## Tukey test
