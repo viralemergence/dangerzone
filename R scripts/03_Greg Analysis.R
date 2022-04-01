@@ -6,7 +6,7 @@ rm(list = ls())
 {
 
   library(tidyverse); library(data.table); library(magrittr); library(ggregplot); library(cowplot)
-  library(geiger);library(ape);library(picante); library(patchwork)
+  library(geiger);library(ape);library(picante); library(patchwork); library(colorspace)
   library(tidyverse); library(INLA); library(ggregplot); library(glue); library(fs)
 
   theme_set(theme_cowplot())
@@ -21,7 +21,7 @@ iucn %<>% rename(DataDeficient = Data_Deficient)
 
 # source("0_Urban Import.R")
 
-dir_create("Output")
+dir_create(c("Output", "Figures"))
 
 # UrbanDF %<>% filter(!Pseudoabsence)
 
@@ -186,7 +186,8 @@ ModelEffects <-
   IMList %>%
   map(c("Spatial", "Model")) %>%
   Efxplot +
-  theme(legend.position = "top") +
+  # theme(legend.position = "top") +
+  theme(legend.position = "none") +
   scale_colour_manual(values = c(AlberColours[[2]], AlberColours[[3]]),
                       labels = c("Rich.", "Zoo.Rich."))
 
@@ -196,6 +197,7 @@ Maps <-
 
     ggField(Model = a$Spatial$Model,
             Mesh = a$Spatial$Mesh, #Groups = 2,
+            PointAlpha = 0.2,
             Points = a$Data[,c("X", "Y")]) +
       scale_fill_discrete_sequential(palette = AlberPalettes[[2]]) +
       theme_void()
@@ -213,7 +215,9 @@ Maps[[2]] <-
 
 Maps[[2]] <- Maps[[2]] + scale_fill_discrete_sequential(palette = AlberPalettes[[3]])
 
-ModelEffects|Maps
+(ModelEffects/Maps)# + plot_layout(widths = c(1, 6))
+
+ggsave("Figures/ModelPanels.jpeg", units = "mm", height = 200, width = 200)
 
 # Path Analysis ####
 
@@ -239,8 +243,6 @@ IndirectMean <- Indirect %>% as.mcmc %>% mean()
 Indirect %>% qplot + geom_vline(aes(xintercept = c(IndirectCI, IndirectMean)), colour = "red")
 
 # Endangered Maps ####
-
-library(colorspace)
 
 IMList$NZoon$Spatial$SpatiotemporalModel %>%
   ggField(Mesh = IMList$NZoon$Spatial$Mesh, Groups = 2,
