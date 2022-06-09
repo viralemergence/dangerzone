@@ -23,7 +23,7 @@ iucn %<>% rename(DataDeficient = Data_Deficient)
 
 dir_create(c("Output", "Figures"))
 
-# UrbanDF %<>% filter(!Pseudoabsence)
+# UrbanDF %<>% filter(!Pseudoabsence) # Greg filters
 
 Resps <- c(
 
@@ -40,7 +40,8 @@ FullCovar <- c("hOrder",
                "Endangered", "DataDeficient", "Decreasing",
                # "populationTrend",
                # "DomesticBinary", "HumanDistance",
-               # "LogArea", "DietDiversity",
+                "LogArea",
+               # "DietDiversity",
                # "LogMass",
                "PC1", "PC2")
 

@@ -2,8 +2,7 @@
 
 library(tidyverse)
 library(magrittr)
-library(lavaan)
-library(semPlot)
+library(ordinal)
 
 iucn <- readRDS("IUCNDF.rds")
 
@@ -26,17 +25,12 @@ iucn %<>% rename(Viruses = NVirion,
 #   summarize(Host, Citations) -> citedf
 # iucn %<>% left_join(citedf)
 
-model2 <-'
-Citations ~ Endangered
-DataDef ~ Citations
-Viruses ~ Citations + Endangered + Decreasing + DataDef
-Zoonotic ~ Citations + Endangered + Decreasing + DataDef
-Endangered ~~ DataDef
-Decreasing ~~ Endangered
-Zoonotic ~~ Viruses'
+## A simple cumulative link model:
+# fm1 <- clm(rating ~ contact + temp, data=wine)
+# summary(fm1)
 
-fit <- cfa(model2, data = iucn)
-summary(fit, fit.measures = TRUE, standardized=T,rsquare=T)
-semPaths(fit, 'std', layout = 'circle2', curvePivot = TRUE, exoCov = FALSE, residuals = FALSE,
-         nCharNodes = 0, label.cex = 1, label.norm = FALSE, label.scale = FALSE,
-         node.width = 1.7, node.height = 1.7, edge.label.cex = 1.1, fade = FALSE)
+## A simple cumulative link mixed model:
+# fmm1 <- clmm(rating ~ contact + temp + (1|judge), data=wine)
+# summary(fmm1)
+
+fm1 <- clm()
