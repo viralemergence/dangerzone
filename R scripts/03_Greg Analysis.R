@@ -187,7 +187,7 @@ ModelEffects <-
   map(c("Spatial", "Model")) %>%
   Efxplot +
   # theme(legend.position = "top") +
-  theme(legend.position = "none") +
+  # theme(legend.position = "none") +
   scale_colour_manual(values = c(AlberColours[[2]], AlberColours[[3]]),
                       labels = c("Rich.", "Zoo.Rich."))
 
@@ -217,6 +217,9 @@ Maps[[2]] <- Maps[[2]] + scale_fill_discrete_sequential(palette = AlberPalettes[
 
 (ModelEffects/Maps)# + plot_layout(widths = c(1, 6))
 
+ModelEffects +
+  theme(legend.position = c(0.7, 0.3))
+
 ggsave("Figures/ModelPanels.jpeg", units = "mm", height = 200, width = 200)
 
 # Path Analysis ####
@@ -225,9 +228,20 @@ ggsave("Figures/ModelPanels.jpeg", units = "mm", height = 200, width = 200)
 (MeanEndangeredNZ <- IMList$NZoon$Spatial$Model %>% GetEstimates("EndangeredTRUE"))
 (MeanNVNZ <- IMList$NZoon$Spatial$Model %>% GetEstimates("LogRichness"))
 
-(PEndangeredNV <- IMList$NVirion$Spatial$Model %>% INLAPValue("EndangeredTRUE"))
-(PEndangeredNZ <- IMList$NZoon$Spatial$Model %>% INLAPValue("EndangeredTRUE"))
-(PNVNZ <- IMList$NZoon$Spatial$Model %>% INLAPValue("LogRichness"))
+(PEndangeredNV <- IMList$NVirion$Spatial$Model %>% INLAPValue("EndangeredTRUE") %>% unlist)
+(PEndangeredNZ <- IMList$NZoon$Spatial$Model %>% INLAPValue("EndangeredTRUE") %>% unlist)
+(PNVNZ <- IMList$NZoon$Spatial$Model %>% INLAPValue("LogRichness") %>% unlist)
+
+Path <-
+  data.frame(
+
+    Var = c("Endangered_NVirus", "Endangered_NZoo", "NVirus_NZoo"),
+    Estimates = c(MeanEndangeredNV, MeanEndangeredNZ, MeanNVNZ),
+    P = c(PEndangeredNV, PEndangeredNZ, PNVNZ)
+
+  )
+
+Path %>% write.csv("Figures/PathCoefficients.csv", row.names = F)
 
 EndangeredNV <- IMList$NVirion$Spatial$Model %>% GetEstimates("EndangeredTRUE", NDraws = 1000, Draw = T)
 EndangeredNZ <- IMList$NZoon$Spatial$Model %>% GetEstimates("EndangeredTRUE", NDraws = 1000, Draw = T)
