@@ -39,7 +39,15 @@ iucn %>%
   scale_x_continuous(trans = "log10") +
   guides(fill = "none", color = "none") +
   scale_fill_cyclical(values = rev(awtools::a_palette[1:6])) +
-  xlab("") + ylab("") + facet_wrap( ~ Level)
+  xlab("") + ylab("") + facet_wrap( ~ Level) +
+  scale_y_discrete(labels = c("Critically Endangered" = "CR",
+                              "Endangered" = "EN",
+                              "Vulnerable" = "VU",
+                              "Near Threatened" = "NT",
+                              "Least Concern" = "LC",
+                              "Data Deficient" = "DD"))
+
+
 
 ################# Simple anova
 
