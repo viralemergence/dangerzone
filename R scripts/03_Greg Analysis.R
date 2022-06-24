@@ -13,17 +13,38 @@ rm(list = ls())
 
 }
 
-iucn <- readRDS("IUCNDF.rds")
 
-iucn %<>% filter(!populationTrend == "")
+###########################################################
+# Data reconciliation between Kayla and Greg
+urban <- readRDS("~/Github/dangerzone/data/IUCNDF.rds")
+iucn <- read_csv("~/Github/dangerzone/Data/FixedPathMar72022.csv")
+iucn %<>%
+  mutate(Endangered = as.logical(Endangered),
+         Decreasing = as.logical(Decreasing),
+         DataDeficient = as.logical(DataDeficient)) %>%
+  select(-X8) %>%
+  mutate(NVirion = round(10^NVirion - 1),
+         NZoon = round(10^NZoon - 1),
+         Citations = round(10^Citations - 1))
+urban %>%
+  select(-c(Citations,NumVirus,NVirion,NZoon,Endangered,Decreasing,Data_Deficient)) %>%
+  left_join(iucn) %>%
+  mutate(LogCites = log(Citations + 1)) ->
+        iucn
 
-iucn %<>% rename(DataDeficient = Data_Deficient)
+iucn$NVirion[iucn$NVirion==0] <- NA # I THINK this harmonizes it
+iucn$NVirion[iucn$NZoon==0] <- NA
+###########################################################
+
+iucn %<>% filter(!is.na(DataDeficient))
+
+# iucn %<>% rename(DataDeficient = Data_Deficient)
 
 # source("0_Urban Import.R")
 
 dir_create(c("Output", "Figures"))
 
-# UrbanDF %<>% filter(!Pseudoabsence)
+# UrbanDF %<>% filter(!Pseudoabsence) # Greg filters
 
 Resps <- c(
 
@@ -39,8 +60,10 @@ FullCovar <- c("hOrder",
                "LogCites",
                "Endangered", "DataDeficient", "Decreasing",
                # "populationTrend",
-               # "DomesticBinary", "HumanDistance",
-               # "LogArea", "DietDiversity",
+               "DomesticBinary",
+               # "HumanDistance",
+                "LogArea",
+               # "DietDiversity",
                # "LogMass",
                "PC1", "PC2")
 
@@ -52,8 +75,8 @@ PhyloList <-
 if(1){ # Removing pseudoabsences
 
   iucn %<>%
-    # filter(!is.na(NVirion)) %>% # Removing all pseudoabsences
-    filter(!(is.na(NVirion) & LogCites == 0)) %>% # Removing pseudoabsences and zero-citations
+    filter(!is.na(NVirion)) %>% # Removing all pseudoabsences
+    # filter(!(is.na(NVirion) & LogCites == 0)) %>% # Removing pseudoabsences and zero-citations
     # mutate_at("NZoon", ~ifelse(is.na(.x), 0, .x)) %>%
     # mutate_at("NVirion", ~.x - 1) %>%
     mutate_at(c("NZoon", "NVirion"), ~ifelse(is.na(.x), 0, .x))
@@ -185,11 +208,37 @@ IMList %>% map("FinalModel") %>% Efxplot + ggtitle("Base") +
 ModelEffects <-
   IMList %>%
   map(c("Spatial", "Model")) %>%
+<<<<<<< HEAD
   Efxplot +
   # theme(legend.position = "top") +
+=======
+  Efxplot(PointSize = 3) +
+  theme(legend.position = c(0.7, 0.07)) +
+>>>>>>> df647dc12e34e94bb68b364d40abeb1ee551636e
   # theme(legend.position = "none") +
   scale_colour_manual(values = c(AlberColours[[2]], AlberColours[[3]]),
-                      labels = c("Rich.", "Zoo.Rich."))
+                      labels = c("Total",
+                                 "Zoonotic"))
+
+
+
+ModelEffects +  # Always check this
+  scale_x_discrete(labels = rev(c("Intercept",
+                              "Carnivora",
+                              "Chiroptera",
+                              "Primates",
+                              "Rodentia",
+                              "Citations",
+                              "Endangered",
+                              "Data Deficient",
+                              "Domesticated",
+                              "Geographic Range Area",
+                              "Life History PC1",
+                              "Life History PC2",
+                              "Total Richness")))
+
+
+
 
 Maps <-
   IMList %>%

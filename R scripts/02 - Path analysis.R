@@ -1,29 +1,33 @@
-#path analysis# 
+#path analysis#
 
+library(tidyverse)
+library(magrittr)
 library(lavaan)
 library(semPlot)
 
-iucn %<>%
-  select(Host, redlistCategory) %<>%
-  group_by(Host)
+iucn <- read_csv("~/Github/dangerzone/Data/FixedPathMar72022.csv")
+iucn %<>% filter(!(str_detect(Host, " x ")))
 
-Citations %>%
-  select(Host, Citations) %>%
-  group_by(Host) %>%
-  summarize(Host, Citations) -> citedf
-iucn %<>% left_join(citedf)
+iucn %<>% filter(complete.cases(NVirion, NZoon, Endangered, DataDeficient, Decreasing, Citations))
+# All values are already log transformed
 
-Path.2
+iucn %<>% rename(Viruses = NVirion,
+                 Zoonotic = NZoon,
+                 DataDef = DataDeficient)
+
+iucn %<>% filter(Viruses > 0)
+
 model2 <-'
-Citations ~ Endangered + DataDeficient
-NVirion ~ Citations + Endangered + Decreasing
-NZoon ~ Citations + Endangered + Decreasing
-Endangered ~~ DataDeficient
+Citations ~ Endangered
+DataDef ~ Citations
+Viruses ~ Citations + Endangered + Decreasing + DataDef
+Zoonotic ~ Citations + Endangered + Decreasing + DataDef
+Endangered ~~ DataDef
 Decreasing ~~ Endangered
-NZoon ~~ NVirion'
+Zoonotic ~~ Viruses'
 
-fit <- cfa(model2, data = FixedPath2)
+fit <- cfa(model2, data = iucn)
 summary(fit, fit.measures = TRUE, standardized=T,rsquare=T)
-semPaths(fit, 'std', layout = 'circle2', curvePivot = TRUE, exoCov = FALSE, residuals = FALSE, 
-         nCharNodes = 0, label.cex = 1.3, label.norm = FALSE, label.scale = FALSE, 
-         node.width = 2.5, node.height = 2.5, edge.label.cex = 1.1, fade = FALSE)
+semPaths(fit, what = 'est', layout = 'circle2', curvePivot = TRUE, exoCov = FALSE, residuals = FALSE,
+         nCharNodes = 0, label.cex = 1, label.norm = FALSE, label.scale = FALSE,
+         node.width = 1.7, node.height = 1.7, edge.label.cex = 1.1, fade = FALSE)
