@@ -133,6 +133,8 @@ for(q in q:length(Resps)){
 
     TestDF
 
+  TestDF %<>% mutate_if(is.logical, as.character)
+
   print(nrow(TestDF))
 
   # TestDF %<>% mutate_at("populationTrend", ~factor(.x, levels = c("Stable", "Decreasing", "Increasing", "Unknown")))
@@ -208,13 +210,8 @@ IMList %>% map("FinalModel") %>% Efxplot + ggtitle("Base") +
 ModelEffects <-
   IMList %>%
   map(c("Spatial", "Model")) %>%
-<<<<<<< HEAD
-  Efxplot +
-  # theme(legend.position = "top") +
-=======
   Efxplot(PointSize = 3) +
   theme(legend.position = c(0.7, 0.07)) +
->>>>>>> df647dc12e34e94bb68b364d40abeb1ee551636e
   # theme(legend.position = "none") +
   scale_colour_manual(values = c(AlberColours[[2]], AlberColours[[3]]),
                       labels = c("Total",
@@ -231,6 +228,7 @@ ModelEffects +  # Always check this
                               "Citations",
                               "Endangered",
                               "Data Deficient",
+                              "Decreasing",
                               "Domesticated",
                               "Geographic Range Area",
                               "Life History PC1",
